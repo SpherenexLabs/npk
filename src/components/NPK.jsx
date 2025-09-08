@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getDatabase, ref, onValue, off } from "firebase/database";
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 /**
- * WaterDetectionDashboard + Client-side KNN suggestions
+ * WaterDetectionDashboard + Client-side KNN suggestions + Real-time Graphs
  * - Adds a lightweight KNN (k=3) recommender that reads current sensors and suggests actions.
+ * - Includes real-time graphs for trending sensor data
  * - No external ML libs needed. You can expand/replace the seed dataset below with your historical data.
  */
 
@@ -197,7 +199,38 @@ function knnSuggest(sample, k = 3) {
 }
 
 /* ===========================
-   3) React component
+   3) Chart Utilities
+   =========================== */
+
+// Keep last N data points for charts
+const MAX_DATA_POINTS = 50;
+
+// Custom tooltip for charts
+const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div style={styles.chartTooltip}>
+                <p style={styles.tooltipLabel}>{`Time: ${label}`}</p>
+                {payload.map((entry, index) => (
+                    <p key={index} style={{ color: entry.color, margin: 0, fontSize: '12px' }}>
+                        {`${entry.dataKey}: ${entry.value}`}
+                    </p>
+                ))}
+            </div>
+        );
+    }
+    return null;
+};
+
+// Format time for chart labels
+const formatTime = (timestamp) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+/* ===========================
+   4) React component
    =========================== */
 const WaterDetectionDashboard = () => {
     const [sensorData, setSensorData] = useState(null);
@@ -207,6 +240,17 @@ const WaterDetectionDashboard = () => {
     const [isConnected, setIsConnected] = useState(null);
     const [ai, setAi] = useState({ label: "-", suggestion: "-", neighbors: [] });
     const [showNN, setShowNN] = useState(false);
+    
+    // Historical data for charts
+    const [historicalData, setHistoricalData] = useState([]);
+    
+    // Chart visibility toggles
+    const [showCharts, setShowCharts] = useState({
+        waterQuality: true,
+        npk: true,
+        environmental: true,
+        waterLevel: false
+    });
 
     // Initialize Firebase app once
     const app = useMemo(() => {
@@ -237,8 +281,32 @@ const WaterDetectionDashboard = () => {
                 if (snapshot.exists()) {
                     const data = snapshot.val() || {};
                     setSensorData(data);
-                    setLastUpdated(new Date().toLocaleString());
+                    const currentTime = new Date().toLocaleString();
+                    setLastUpdated(currentTime);
                     setError(null);
+
+                    // Add to historical data
+                    const timestamp = Date.now();
+                    const newDataPoint = {
+                        timestamp,
+                        time: formatTime(timestamp),
+                        ph: Number(data.ph) || 0,
+                        tds_ppm: Number(data.tds_ppm) || 0,
+                        temp: Number(data.temp) || 0,
+                        ec: Number(data.ec) || 0,
+                        turbidity_ntu: Number(data.turbidity_ntu) || 0,
+                        water_pct: Number(data.water_pct) || 0,
+                        n: Number(data.n) || 0,
+                        p: Number(data.p) || 0,
+                        k: Number(data.k) || 0,
+                        hum: Number(data.hum) || 0
+                    };
+
+                    setHistoricalData(prev => {
+                        const updated = [...prev, newDataPoint];
+                        // Keep only last MAX_DATA_POINTS
+                        return updated.slice(-MAX_DATA_POINTS);
+                    });
 
                     // Compute KNN suggestion
                     const sample = {
@@ -301,6 +369,13 @@ const WaterDetectionDashboard = () => {
         const n = Number(timestamp);
         const ms = n < 10_000_000_000 ? n * 1000 : n;
         return new Date(ms).toLocaleString();
+    };
+
+    const toggleChart = (chartType) => {
+        setShowCharts(prev => ({
+            ...prev,
+            [chartType]: !prev[chartType]
+        }));
     };
 
     if (loading) {
@@ -475,6 +550,120 @@ const WaterDetectionDashboard = () => {
                 </div>
             </div>
 
+            {/* Charts Section */}
+            <div style={styles.chartsSection}>
+                <div style={styles.chartsSectionHeader}>
+                    <h2 style={styles.chartsSectionTitle}>Real-time Sensor Trends</h2>
+                    <div style={styles.chartToggles}>
+                        <button 
+                            onClick={() => toggleChart('waterQuality')} 
+                            style={{...styles.toggleBtn, backgroundColor: showCharts.waterQuality ? '#1e88e5' : '#f5f5f5'}}
+                        >
+                            Water Quality
+                        </button>
+                        <button 
+                            onClick={() => toggleChart('npk')} 
+                            style={{...styles.toggleBtn, backgroundColor: showCharts.npk ? '#1e88e5' : '#f5f5f5'}}
+                        >
+                            NPK Levels
+                        </button>
+                        <button 
+                            onClick={() => toggleChart('environmental')} 
+                            style={{...styles.toggleBtn, backgroundColor: showCharts.environmental ? '#1e88e5' : '#f5f5f5'}}
+                        >
+                            Environmental
+                        </button>
+                        <button 
+                            onClick={() => toggleChart('waterLevel')} 
+                            style={{...styles.toggleBtn, backgroundColor: showCharts.waterLevel ? '#1e88e5' : '#f5f5f5'}}
+                        >
+                            Water Level
+                        </button>
+                    </div>
+                </div>
+
+                {/* Water Quality Chart */}
+                {showCharts.waterQuality && (
+                    <div style={styles.chartCard}>
+                        <h3 style={styles.chartTitle}>Water Quality Trends</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={historicalData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="time" />
+                                <YAxis yAxisId="ph" orientation="left" domain={[5, 9]} />
+                                <YAxis yAxisId="tds" orientation="right" domain={[0, 'dataMax']} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend />
+                                <ReferenceLine yAxisId="ph" y={6.5} stroke="#ff9800" strokeDasharray="5 5" />
+                                <ReferenceLine yAxisId="ph" y={7.5} stroke="#ff9800" strokeDasharray="5 5" />
+                                <Line yAxisId="ph" type="monotone" dataKey="ph" stroke="#e53e3e" strokeWidth={2} name="pH" />
+                                <Line yAxisId="tds" type="monotone" dataKey="tds_ppm" stroke="#3182ce" strokeWidth={2} name="TDS (ppm)" />
+                                <Line yAxisId="tds" type="monotone" dataKey="ec" stroke="#805ad5" strokeWidth={2} name="EC" />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
+
+                {/* NPK Chart */}
+                {showCharts.npk && (
+                    <div style={styles.chartCard}>
+                        <h3 style={styles.chartTitle}>NPK Nutrient Levels</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <AreaChart data={historicalData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="time" />
+                                <YAxis />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend />
+                                <Area type="monotone" dataKey="n" stackId="1" stroke="#38a169" fill="#38a169" fillOpacity={0.6} name="Nitrogen (N)" />
+                                <Area type="monotone" dataKey="p" stackId="1" stroke="#d69e2e" fill="#d69e2e" fillOpacity={0.6} name="Phosphorus (P)" />
+                                <Area type="monotone" dataKey="k" stackId="1" stroke="#e53e3e" fill="#e53e3e" fillOpacity={0.6} name="Potassium (K)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
+
+                {/* Environmental Chart */}
+                {showCharts.environmental && (
+                    <div style={styles.chartCard}>
+                        <h3 style={styles.chartTitle}>Environmental Conditions</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={historicalData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="time" />
+                                <YAxis yAxisId="temp" orientation="left" domain={[15, 35]} />
+                                <YAxis yAxisId="hum" orientation="right" domain={[0, 100]} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend />
+                                <ReferenceLine yAxisId="temp" y={25} stroke="#ff9800" strokeDasharray="5 5" />
+                                <Line yAxisId="temp" type="monotone" dataKey="temp" stroke="#e53e3e" strokeWidth={2} name="Temperature (°C)" />
+                                <Line yAxisId="hum" type="monotone" dataKey="hum" stroke="#3182ce" strokeWidth={2} name="Humidity (%)" />
+                                <Line yAxisId="temp" type="monotone" dataKey="turbidity_ntu" stroke="#805ad5" strokeWidth={2} name="Turbidity (NTU)" />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
+
+                {/* Water Level Chart */}
+                {showCharts.waterLevel && (
+                    <div style={styles.chartCard}>
+                        <h3 style={styles.chartTitle}>Water Level Monitoring</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <AreaChart data={historicalData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="time" />
+                                <YAxis domain={[0, 100]} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend />
+                                <ReferenceLine y={20} stroke="#e53e3e" strokeDasharray="5 5" />
+                                <ReferenceLine y={80} stroke="#38a169" strokeDasharray="5 5" />
+                                <Area type="monotone" dataKey="water_pct" stroke="#3182ce" fill="#3182ce" fillOpacity={0.6} name="Water Level (%)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
+            </div>
+
             {/* AI Suggestions (KNN) - Full Width */}
             <div style={styles.fullWidthCard}>
                 <div style={styles.cardHeaderRow}>
@@ -499,6 +688,9 @@ const WaterDetectionDashboard = () => {
                         <span style={styles.outlineChip}>Model: k-NN (k=3)</span>
                         <span style={styles.outlineChip}>
                             Neighbors: {Math.max(0, ai.neighbors?.length || 0)}
+                        </span>
+                        <span style={styles.outlineChip}>
+                            Data Points: {historicalData.length}
                         </span>
                     </div>
 
@@ -540,7 +732,7 @@ const WaterDetectionDashboard = () => {
 };
 
 /* ===========================
-   4) Styles
+   5) Styles
    =========================== */
 const styles = {
     container: {
@@ -586,6 +778,69 @@ const styles = {
         maxWidth: "1200px",
         margin: "0 auto",
         width: "100%",
+    },
+    chartsSection: {
+        maxWidth: "1200px",
+        margin: "0 auto 20px auto",
+        width: "100%",
+    },
+    chartsSectionHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "20px",
+        flexWrap: "wrap",
+        gap: "10px",
+    },
+    chartsSectionTitle: {
+        color: "#333",
+        fontSize: "1.6rem",
+        fontWeight: "600",
+        margin: 0,
+    },
+    chartToggles: {
+        display: "flex",
+        gap: "8px",
+        flexWrap: "wrap",
+    },
+    toggleBtn: {
+        padding: "8px 16px",
+        border: "1px solid #e0e0e0",
+        borderRadius: "6px",
+        cursor: "pointer",
+        fontSize: "14px",
+        fontWeight: "500",
+        transition: "all 0.2s",
+        color: "#333",
+    },
+    chartCard: {
+        backgroundColor: "white",
+        borderRadius: "12px",
+        padding: "24px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        border: "1px solid #e0e0e0",
+        marginBottom: "20px",
+    },
+    chartTitle: {
+        margin: "0 0 16px 0",
+        color: "#333",
+        fontSize: "1.1rem",
+        fontWeight: "600",
+        borderBottom: "2px solid #1e88e5",
+        paddingBottom: "6px",
+    },
+    chartTooltip: {
+        backgroundColor: "white",
+        border: "1px solid #e0e0e0",
+        borderRadius: "6px",
+        padding: "8px 12px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+    },
+    tooltipLabel: {
+        fontSize: "12px",
+        fontWeight: "600",
+        margin: "0 0 4px 0",
+        color: "#333",
     },
     cardHeaderRow: {
         display: "flex",
