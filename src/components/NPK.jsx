@@ -738,12 +738,12 @@ const WaterDetectionDashboard = () => {
                                     const pVal = typeof sensorData?.p === "number" ? sensorData.p : 0;
                                     const kVal = typeof sensorData?.k === "number" ? sensorData.k : 0;
                                     let npkReasons = [];
-                                    if (nVal < 10) npkReasons.push("Low Nitrogen detected! Add some NPK solutions.");
-                                    if (nVal > 60) npkReasons.push("High Nitrogen detected! Add some fresh water to dilute.");
-                                    if (pVal < 10) npkReasons.push("Low Phosphorus detected! Add some NPK solutions.");
-                                    if (pVal > 60) npkReasons.push("High Phosphorus detected! Add some fresh water to dilute.");
-                                    if (kVal < 10) npkReasons.push("Low Potassium detected! Add some NPK solutions.");
-                                    if (kVal > 60) npkReasons.push("High Potassium detected! Add some fresh water to dilute.");
+                                    if (nVal < 10) npkReasons.push("N: Add some NPK solution.");
+                                    else if (nVal > 120) npkReasons.push("N: Add some fresh water.");
+                                    if (pVal < 10) npkReasons.push("P: Add some NPK solution.");
+                                    else if (pVal > 120) npkReasons.push("P: Add some fresh water.");
+                                    if (kVal < 10) npkReasons.push("K: Add some NPK solution.");
+                                    else if (kVal > 120) npkReasons.push("K: Add some fresh water.");
                                     if (npkReasons.length === 0) npkReasons.push(n.row.suggestion);
                                     return (
                                         <div key={i} style={styles.nnItem}>
@@ -779,23 +779,16 @@ const WaterDetectionDashboard = () => {
                                 }
                                 // Neighbor 2: EC (Electrical Conductivity) from Environmental
                                 else if (i === 1) {
-                                                                        // Dynamic EC and PH suggestions
-                                                                        let ecReason = n.row.suggestion;
+                                                                        // Dynamic EC suggestions
+                                                                        let ecReason = "";
                                                                         if (typeof sensorData?.ec === "number" && !isNaN(sensorData.ec)) {
-                                                                            if (sensorData.ec < 150) {
-                                                                                ecReason = "EC is low! Add nutrient-rich water to boost your system and support healthy growth.";
-                                                                            } else if (sensorData.ec > 650) {
-                                                                                ecReason = "EC is high! Add some normal water to balance your solution and protect your plants.";
+                                                                            if (sensorData.ec < 90) {
+                                                                                ecReason = "Add some nutrient rich water.";
                                                                             }
                                                                         }
-                                                                        // PH suggestions
-                                                                        let phReason = "";
-                                                                        if (typeof sensorData?.ph === "number" && !isNaN(sensorData.ph)) {
-                                                                            if (sensorData.ph < 3) {
-                                                                                phReason = "PH is very low! Add some base.";
-                                                                            } else if (sensorData.ph > 8) {
-                                                                                phReason = "PH is high! Add some acidic solutions.";
-                                                                            }
+                                                                        // If no reason, use default
+                                                                        if (!ecReason) {
+                                                                            ecReason = n.row.suggestion;
                                                                         }
                                                                         return (
                                                                             <div key={i} style={styles.nnItem}>
@@ -813,43 +806,16 @@ const WaterDetectionDashboard = () => {
                                                                                             <span>EC Value</span>
                                                                                             <strong>{sensorData?.ec ?? 0}</strong>
                                                                                         </div>
-                                                                                        <div style={styles.nnMetric}>
-                                                                                            <span>Reason</span>
-                                                                                            <strong>{ecReason}</strong>
-                                                                                        </div>
-                                                                                        {phReason && (
+                                                                                        {typeof sensorData?.ec === "number" && sensorData.ec < 90 && (
                                                                                             <div style={styles.nnMetric}>
-                                                                                                <span>PH Suggestion</span>
-                                                                                                <strong>{phReason}</strong>
+                                                                                                <span>Reason</span>
+                                                                                                <strong>{ecReason}</strong>
                                                                                             </div>
                                                                                         )}
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
                                                                         );
-                                    return (
-                                        <div key={i} style={styles.nnItem}>
-                                            <div style={styles.nnItemHeader}>
-                                                <span>EC (Electrical Conductivity)</span>
-                                            </div>
-                                            <div style={styles.nnBodyGrid}>
-                                                <div>
-                                                    <div style={styles.nnMetric}>
-                                                     
-                                                        <strong>{n.d2.toFixed(4)}</strong>
-                                                    </div>
-                                                    <div style={styles.nnMetric}>
-                                                        <span>EC Value</span>
-                                                        <strong>{sensorData?.ec ?? 0}</strong>
-                                                    </div>
-                                                    <div style={styles.nnMetric}>
-                                                        <span>Reason</span>
-                                                        <strong>{n.row.suggestion}</strong>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
                                 }
                                 // Neighbor 3: pH Level and TDS from Water Quality
                                 else if (i === 2) {
@@ -857,14 +823,14 @@ const WaterDetectionDashboard = () => {
                                     let reasons = [];
                                     if (typeof sensorData?.ph === "number" && !isNaN(sensorData.ph)) {
                                         if (sensorData.ph < 3) {
-                                            reasons.push("PH is very low! Add some base.");
+                                            reasons.push("PH: Add some base solution.");
                                         } else if (sensorData.ph > 8) {
-                                            reasons.push("PH is high! Add some acidic solutions.");
+                                            reasons.push("PH: Add some acid solution.");
                                         }
                                     }
                                     if (typeof sensorData?.tds_ppm === "number" && !isNaN(sensorData.tds_ppm)) {
-                                        if (sensorData.tds_ppm < 100) {
-                                            reasons.push("TDS is low! Add some mineral rich salt.");
+                                        if (sensorData.tds_ppm < 90) {
+                                            reasons.push("TDS: Add some mineral rich salt.");
                                         }
                                     }
                                     // Default to original suggestion if no conditions met
