@@ -410,6 +410,44 @@ const WaterDetectionDashboard = () => {
         ts,
     } = s;
 
+        // EC suggestion logic (only Firebase value)
+        let ecSuggestion = null;
+        if (typeof ec === "number" && !isNaN(ec)) {
+            if (ec < 150) {
+                ecSuggestion = (
+                    <div style={{
+                        background: "#e3fcec",
+                        color: "#087f23",
+                        border: "2px solid #b2f5ea",
+                        borderRadius: "10px",
+                        padding: "16px",
+                        margin: "18px 0",
+                        fontWeight: 600,
+                        fontSize: "1.1rem",
+                        textAlign: "center"
+                    }}>
+                        EC is low! Add nutrient-rich water to boost your system and support healthy growth.
+                    </div>
+                );
+            } else if (ec > 650) {
+                ecSuggestion = (
+                    <div style={{
+                        background: "#fff3e0",
+                        color: "#e65100",
+                        border: "2px solid #ffe0b2",
+                        borderRadius: "10px",
+                        padding: "16px",
+                        margin: "18px 0",
+                        fontWeight: 600,
+                        fontSize: "1.1rem",
+                        textAlign: "center"
+                    }}>
+                        EC is high! Add some normal water to balance your solution and protect your plants.
+                    </div>
+                );
+            }
+        }
+
     return (
         <div style={styles.container}>
             <header style={styles.header}>
@@ -419,6 +457,8 @@ const WaterDetectionDashboard = () => {
                     RTDB Connection: {isConnected === null ? "…" : isConnected ? "Online" : "Offline"}
                 </div>
             </header>
+
+                {/* EC Suggestion Section */}
 
             <div style={styles.grid}>
                 {/* NPK Values */}
@@ -475,6 +515,7 @@ const WaterDetectionDashboard = () => {
                             <span style={styles.paramLabel}>EC</span>
                             <span style={styles.paramValue}>{ec}</span>
                         </div>
+                        {/* EC Suggestion inside EC card */}
                     </div>
                 </div>
 
@@ -689,26 +730,200 @@ const WaterDetectionDashboard = () => {
 
                     {showNN && (
                         <div style={styles.nnList}>
-                            {(ai.neighbors || []).map((n, i) => (
-                                <div key={i} style={styles.nnItem}>
-                                    <div style={styles.nnItemHeader}>
-                                        <span>Neighbor {i + 1}</span>
-                                        <span style={styles.nnLabelBadge}>{n.row.label}</span>
-                                    </div>
-                                    <div style={styles.nnBodyGrid}>
-                                        <div>
-                                            <div style={styles.nnMetric}>
-                                                <span>Distance²</span>
-                                                <strong>{n.d2.toFixed(4)}</strong>
+                            {(ai.neighbors || []).map((n, i) => {
+                                // Neighbor 1: N, P, K values from Firebase only, with custom suggestions
+                                if (i === 0) {
+                                    // Use only Firebase values
+                                    const nVal = typeof sensorData?.n === "number" ? sensorData.n : 0;
+                                    const pVal = typeof sensorData?.p === "number" ? sensorData.p : 0;
+                                    const kVal = typeof sensorData?.k === "number" ? sensorData.k : 0;
+                                    let npkReasons = [];
+                                    if (nVal < 10) npkReasons.push("Low Nitrogen detected! Add some NPK solutions.");
+                                    if (nVal > 60) npkReasons.push("High Nitrogen detected! Add some fresh water to dilute.");
+                                    if (pVal < 10) npkReasons.push("Low Phosphorus detected! Add some NPK solutions.");
+                                    if (pVal > 60) npkReasons.push("High Phosphorus detected! Add some fresh water to dilute.");
+                                    if (kVal < 10) npkReasons.push("Low Potassium detected! Add some NPK solutions.");
+                                    if (kVal > 60) npkReasons.push("High Potassium detected! Add some fresh water to dilute.");
+                                    if (npkReasons.length === 0) npkReasons.push(n.row.suggestion);
+                                    return (
+                                        <div key={i} style={styles.nnItem}>
+                                            <div style={styles.nnItemHeader}>
+                                                <span>N, P, K Levels</span>
+                                                <button 
+                                                    style={styles.actionButton}
+                                                    onClick={() => {}}
+                                                >
+                                                    Filter/Clean
+                                                </button>
                                             </div>
-                                            <div style={styles.nnMetric}>
-                                                <span>Reason</span>
-                                                <strong>{n.row.suggestion}</strong>
+                                            <div style={styles.nnBodyGrid}>
+                                                <div>
+                                                    <div style={styles.nnMetric}>
+                                                        <span>Distance²</span>
+                                                        <strong>{n.d2.toFixed(4)}</strong>
+                                                    </div>
+                                                    <div style={styles.nnMetric}>
+                                                        <span>Nitrogen (N)</span>
+                                                        <strong>{nVal}</strong>
+                                                    </div>
+                                                    <div style={styles.nnMetric}>
+                                                        <span>Phosphorus (P)</span>
+                                                        <strong>{pVal}</strong>
+                                                    </div>
+                                                    <div style={styles.nnMetric}>
+                                                        <span>Potassium (K)</span>
+                                                        <strong>{kVal}</strong>
+                                                    </div>
+                                                    <div style={styles.nnMetric}>
+                                                        <span>Reason</span>
+                                                        <strong>{npkReasons.join(" ")}</strong>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            ))}
+                                    );
+                                }
+                                // Neighbor 2: EC (Electrical Conductivity) from Environmental
+                                else if (i === 1) {
+                                                                        // Dynamic EC and PH suggestions
+                                                                        let ecReason = n.row.suggestion;
+                                                                        if (typeof sensorData?.ec === "number" && !isNaN(sensorData.ec)) {
+                                                                            if (sensorData.ec < 150) {
+                                                                                ecReason = "EC is low! Add nutrient-rich water to boost your system and support healthy growth.";
+                                                                            } else if (sensorData.ec > 650) {
+                                                                                ecReason = "EC is high! Add some normal water to balance your solution and protect your plants.";
+                                                                            }
+                                                                        }
+                                                                        // PH suggestions
+                                                                        let phReason = "";
+                                                                        if (typeof sensorData?.ph === "number" && !isNaN(sensorData.ph)) {
+                                                                            if (sensorData.ph < 3) {
+                                                                                phReason = "PH is very low! Add some base.";
+                                                                            } else if (sensorData.ph > 8) {
+                                                                                phReason = "PH is high! Add some acidic solutions.";
+                                                                            }
+                                                                        }
+                                                                        return (
+                                                                            <div key={i} style={styles.nnItem}>
+                                                                                <div style={styles.nnItemHeader}>
+                                                                                    <span>EC (Electrical Conductivity)</span>
+                                                                                    <button 
+                                                                                        style={styles.actionButton}
+                                                                                        onClick={() => {/* Add refill tank action */}}
+                                                                                    >
+                                                                                        Refill Tank
+                                                                                    </button>
+                                                                                </div>
+                                                                                <div style={styles.nnBodyGrid}>
+                                                                                    <div>
+                                                                                        <div style={styles.nnMetric}>
+                                                                                            <span>Distance²</span>
+                                                                                            <strong>{n.d2.toFixed(4)}</strong>
+                                                                                        </div>
+                                                                                        <div style={styles.nnMetric}>
+                                                                                            <span>EC Value</span>
+                                                                                            <strong>{sensorData?.ec ?? 0}</strong>
+                                                                                        </div>
+                                                                                        <div style={styles.nnMetric}>
+                                                                                            <span>Reason</span>
+                                                                                            <strong>{ecReason}</strong>
+                                                                                        </div>
+                                                                                        {phReason && (
+                                                                                            <div style={styles.nnMetric}>
+                                                                                                <span>PH Suggestion</span>
+                                                                                                <strong>{phReason}</strong>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                    return (
+                                        <div key={i} style={styles.nnItem}>
+                                            <div style={styles.nnItemHeader}>
+                                                <span>EC (Electrical Conductivity)</span>
+                                                <button 
+                                                    style={styles.actionButton}
+                                                    onClick={() => {/* Add refill tank action */}}
+                                                >
+                                                    Refill Tank
+                                                </button>
+                                            </div>
+                                            <div style={styles.nnBodyGrid}>
+                                                <div>
+                                                    <div style={styles.nnMetric}>
+                                                        <span>Distance²</span>
+                                                        <strong>{n.d2.toFixed(4)}</strong>
+                                                    </div>
+                                                    <div style={styles.nnMetric}>
+                                                        <span>EC Value</span>
+                                                        <strong>{sensorData?.ec ?? 0}</strong>
+                                                    </div>
+                                                    <div style={styles.nnMetric}>
+                                                        <span>Reason</span>
+                                                        <strong>{n.row.suggestion}</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                // Neighbor 3: pH Level and TDS from Water Quality
+                                else if (i === 2) {
+                                    // Dynamic PH and TDS suggestions
+                                    let reasons = [];
+                                    if (typeof sensorData?.ph === "number" && !isNaN(sensorData.ph)) {
+                                        if (sensorData.ph < 3) {
+                                            reasons.push("PH is very low! Add some base.");
+                                        } else if (sensorData.ph > 8) {
+                                            reasons.push("PH is high! Add some acidic solutions.");
+                                        }
+                                    }
+                                    if (typeof sensorData?.tds_ppm === "number" && !isNaN(sensorData.tds_ppm)) {
+                                        if (sensorData.tds_ppm < 100) {
+                                            reasons.push("TDS is low! Add some mineral rich salt.");
+                                        }
+                                    }
+                                    // Default to original suggestion if no conditions met
+                                    if (reasons.length === 0) {
+                                        reasons.push(n.row.suggestion);
+                                    }
+                                    return (
+                                        <div key={i} style={styles.nnItem}>
+                                            <div style={styles.nnItemHeader}>
+                                                <span>pH Level & TDS (ppm)</span>
+                                                <button 
+                                                    style={styles.actionButton}
+                                                    onClick={() => {/* Add cool/refill action */}}
+                                                >
+                                                    Cool/Refill
+                                                </button>
+                                            </div>
+                                            <div style={styles.nnBodyGrid}>
+                                                <div>
+                                                    <div style={styles.nnMetric}>
+                                                        <span>Distance²</span>
+                                                        <strong>{n.d2.toFixed(4)}</strong>
+                                                    </div>
+                                                    <div style={styles.nnMetric}>
+                                                        <span>pH Level</span>
+                                                        <strong>{typeof sensorData?.ph === "number" ? sensorData.ph : 0}</strong>
+                                                    </div>
+                                                    <div style={styles.nnMetric}>
+                                                        <span>TDS (ppm)</span>
+                                                        <strong>{typeof sensorData?.tds_ppm === "number" ? sensorData.tds_ppm : 0}</strong>
+                                                    </div>
+                                                    <div style={styles.nnMetric}>
+                                                        <span>Reason</span>
+                                                        <strong>{reasons.join(" ")}</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })}
                         </div>
                     )}
                 </div>
@@ -954,6 +1169,17 @@ const styles = {
         padding: "8px 10px",
         borderRadius: 8,
         border: "1px solid #e5e7eb",
+    },
+    actionButton: {
+        backgroundColor: "#1e88e5",
+        color: "white",
+        border: "none",
+        borderRadius: "6px",
+        padding: "6px 14px",
+        fontSize: "12px",
+        fontWeight: "600",
+        cursor: "pointer",
+        transition: "background-color 0.2s",
     },
     cardTitle: {
         margin: "0 0 16px 0",
