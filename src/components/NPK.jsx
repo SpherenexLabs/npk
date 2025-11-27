@@ -753,7 +753,7 @@ const WaterDetectionDashboard = () => {
                                             <div style={styles.nnBodyGrid}>
                                                 <div>
                                                     <div style={styles.nnMetric}>
-                                                        <span>Distance²</span>
+                                                       
                                                         <strong>{n.d2.toFixed(4)}</strong>
                                                     </div>
                                                     <div style={styles.nnMetric}>
@@ -806,7 +806,7 @@ const WaterDetectionDashboard = () => {
                                                                                 <div style={styles.nnBodyGrid}>
                                                                                     <div>
                                                                                         <div style={styles.nnMetric}>
-                                                                                            <span>Distance²</span>
+                                                                                       
                                                                                             <strong>{n.d2.toFixed(4)}</strong>
                                                                                         </div>
                                                                                         <div style={styles.nnMetric}>
@@ -835,7 +835,7 @@ const WaterDetectionDashboard = () => {
                                             <div style={styles.nnBodyGrid}>
                                                 <div>
                                                     <div style={styles.nnMetric}>
-                                                        <span>Distance²</span>
+                                                     
                                                         <strong>{n.d2.toFixed(4)}</strong>
                                                     </div>
                                                     <div style={styles.nnMetric}>
@@ -879,7 +879,7 @@ const WaterDetectionDashboard = () => {
                                             <div style={styles.nnBodyGrid}>
                                                 <div>
                                                     <div style={styles.nnMetric}>
-                                                        <span>Distance²</span>
+                                                     
                                                         <strong>{n.d2.toFixed(4)}</strong>
                                                     </div>
                                                     <div style={styles.nnMetric}>
