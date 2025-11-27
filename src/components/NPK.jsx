@@ -704,13 +704,13 @@ const WaterDetectionDashboard = () => {
             <div style={styles.fullWidthCard}>
                 <div style={styles.cardHeaderRow}>
                     <h3 style={styles.cardTitle}>AI Suggestions (KNN)</h3>
-                    <span style={styles.actionPill}>{ai.label || "-"}</span>
+                    {/* <span style={styles.actionPill}>{ai.label || "-"}</span> */}
                 </div>
 
                 <div style={{ display: "grid", gap: 14 }}>
                     <div style={styles.kvRow}>
                         <span style={styles.kvLabel}>Recommended Action</span>
-                        <span style={styles.kvValue}>{ai.label || "-"}</span>
+                        {/* <span style={styles.kvValue}>{ai.label || "-"}</span> */}
                     </div>
 
                     <div style={styles.suggestionBox}>
@@ -749,12 +749,6 @@ const WaterDetectionDashboard = () => {
                                         <div key={i} style={styles.nnItem}>
                                             <div style={styles.nnItemHeader}>
                                                 <span>N, P, K Levels</span>
-                                                <button 
-                                                    style={styles.actionButton}
-                                                    onClick={() => {}}
-                                                >
-                                                    Filter/Clean
-                                                </button>
                                             </div>
                                             <div style={styles.nnBodyGrid}>
                                                 <div>
@@ -807,12 +801,7 @@ const WaterDetectionDashboard = () => {
                                                                             <div key={i} style={styles.nnItem}>
                                                                                 <div style={styles.nnItemHeader}>
                                                                                     <span>EC (Electrical Conductivity)</span>
-                                                                                    <button 
-                                                                                        style={styles.actionButton}
-                                                                                        onClick={() => {/* Add refill tank action */}}
-                                                                                    >
-                                                                                        Refill Tank
-                                                                                    </button>
+                                                                                    
                                                                                 </div>
                                                                                 <div style={styles.nnBodyGrid}>
                                                                                     <div>
@@ -842,12 +831,6 @@ const WaterDetectionDashboard = () => {
                                         <div key={i} style={styles.nnItem}>
                                             <div style={styles.nnItemHeader}>
                                                 <span>EC (Electrical Conductivity)</span>
-                                                <button 
-                                                    style={styles.actionButton}
-                                                    onClick={() => {/* Add refill tank action */}}
-                                                >
-                                                    Refill Tank
-                                                </button>
                                             </div>
                                             <div style={styles.nnBodyGrid}>
                                                 <div>
@@ -892,12 +875,6 @@ const WaterDetectionDashboard = () => {
                                         <div key={i} style={styles.nnItem}>
                                             <div style={styles.nnItemHeader}>
                                                 <span>pH Level & TDS (ppm)</span>
-                                                <button 
-                                                    style={styles.actionButton}
-                                                    onClick={() => {/* Add cool/refill action */}}
-                                                >
-                                                    Cool/Refill
-                                                </button>
                                             </div>
                                             <div style={styles.nnBodyGrid}>
                                                 <div>
